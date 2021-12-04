@@ -11,6 +11,8 @@ HEADER_END_TAG 		= '>>>HEADER_END<<<'
 FOOTER_START_TAG 	= '>>>FOOTER_START<<<'
 FOOTER_END_TAG 		= '>>>FOOTER_END<<<'
 
+FILE_NAME_TAG		= '{FILE_NAME}'
+
 NO_HEADER_OR_FOOTER_MESSAGE = 'No header nor footer given form either command line arguments or file.'
 
 NO_HEADER_OR_FOOTER 	= 0
@@ -31,8 +33,38 @@ def print_header_file_help():
 		  ''' + '''
 		  Tags:
 		  \t{FILE_NAME}: Inserts the name of the current file.
-		  \t{FOLDER_NAME}: Inserts the name of the folder, particularly useful when using recursion.
 		  ''')
+
+def apply_footers_and_headers(files, paths, disable_tags):
+	for file_path in paths:
+		try: 
+			current_file = open(file_path, 'r+', encoding = 'utf-8', errors='ignore')
+		except PermissionError: 
+			print(f'Insufficiant permission to edit {file_path}')
+			continue
+		
+		tagged_header = header
+		tagged_footer = footer
+
+		if disable_tags != True:
+			tagged_header = tagged_header.replace(FILE_NAME_TAG, files[paths.index(file_path)])
+			tagged_footer = tagged_footer.replace(FILE_NAME_TAG, files[paths.index(file_path)])
+
+		content = current_file.read()
+	
+		if header == '':
+			current_file.seek(0)
+			current_file.write(content + tagged_footer)
+			current_file.truncate()
+		elif footer == '':
+			current_file.seek(0)
+			current_file.write(tagged_header + content)
+			current_file.truncate()
+		else:
+			current_file.seek(0)
+			current_file.write(tagged_header + content + tagged_footer)
+			current_file.truncate()
+		current_file.close()
 
 parser = argparse.ArgumentParser(description = 'A small utility to add headers and footers to files.')
 
@@ -40,6 +72,7 @@ parser.add_argument('--header_file_help',		action = 'store_true',							help = '
 
 parser.add_argument('-r',	'--recursive',		action = 'store_true',							help = 'Whether or not to scan for files recursively.')
 parser.add_argument('-w',	'--whitespace',		action = 'store_true', 							help = 'Whether or not to allow headers/footers only containing whitespace.')
+parser.add_argument(		'--disable_tags',	action = 'store_true',							help = 'Whether or not to use tags found in a header/footer file.')
 parser.add_argument('-t',	'--top',			type = str, 				default = '',		help = 'Sets the header to be put at the top of the files.')
 parser.add_argument('-b',	'--bottom',			type = str,					default = '',		help = 'Sets the footer to be put at the bottom of the files.')
 parser.add_argument('-d',	'--directory',		type = str, 				default = './',		help = 'Sets the directory of files to have headers/footers added.')
@@ -57,33 +90,32 @@ dir					= args.directory
 header_file			= args.header_file
 header				= args.top
 footer				= args.bottom
-files 				= {''}
-paths 				= {''}
+files 				= ['']
+paths 				= ['']
 has_header_footer 	= -1
 
 if args.recursive:
 	for current_directory, directories, current_files in os.walk(dir):
 		for file in current_files:
-			paths.add(os.path.join(current_directory, file))
-			files.add(file)
+			paths.append(os.path.join(current_directory, file))
+			files.append(file)
 else:
 	for file in os.scandir(dir):
-		paths.add(file.name)
-		files.add(file.name)
+		paths.append(file.name)
+		files.append(file.name)
 
-valid_files = {''}
-valid_paths = {''}
+valid_files = ['']
+valid_paths = ['']
 
 # Gets all files ending in any of the given extensions and adds them to 
 # valid_files and valid_paths, which are later used to set the value
 # of files and paths
 for file in files:
 	if file[len(file) - len(extension):] == extension:
-		valid_files.add(file)
+		valid_files.append(file)
 for path in paths:
-	print(path[len(path) - len(extension):])
 	if path[len(path) - len(extension):] == extension:
-		valid_paths.add(path)
+		valid_paths.append(path)
 
 files = valid_files
 paths = valid_paths
@@ -123,7 +155,7 @@ if header_file != '':
 # check if the user is allowing whitespace only headers/footer
 # and if not setting has_header_footer to not include the 
 # header/footer if it is whitespace
-if not args.whitespace:
+if args.whitespace != True:
 	if header.isspace():
 		header = ''
 		has_header_footer = HAS_FOOTER
@@ -194,51 +226,4 @@ if paths.__contains__(os.path.join(dir, sys.argv[0])):
 if paths.__contains__(os.path.join(dir, header_file)):
 	paths.remove(os.path.join(dir, header_file)) # prevents this file from editing the header file
 
-
-if args.recursive:
-	for file_path in paths:
-		try: 
-			current_file = open(file_path, 'r+', encoding = 'utf-8', errors='ignore')
-		except PermissionError: 
-			print(f'Insufficiant permission to edit {file_path}')
-			continue
-
-		content = current_file.read()
-	
-		if header == '':
-			current_file.seek(0)
-			current_file.write(content + footer)
-			current_file.truncate()
-		elif footer == '':
-			current_file.seek(0)
-			current_file.write(header + content)
-			current_file.truncate()
-		else:
-			current_file.seek(0)
-			current_file.write(header + content + footer)
-			current_file.truncate()
-		current_file.close()
-
-else:
-	for file_path in files:
-		try: 
-			current_file = open(file_path, 'r+', encoding = 'utf-8', errors='ignore')
-		except PermissionError: 
-			print(f'Insufficiant permission to edit {file_path}')
-			continue
-
-		content = current_file.read()
-	
-		if header == '':
-			current_file.seek(0)
-			current_file.write(content + footer)
-			current_file.truncate()
-		elif footer == '':
-			current_file.seek(0)
-			current_file.write(header + content)
-			current_file.truncate()
-		else:
-			current_file.seek(0)
-			current_file.write(header + content + footer)
-			current_file.truncate()
-		current_file.close()
+apply_footers_and_headers(files, paths, args.disable_tags)
