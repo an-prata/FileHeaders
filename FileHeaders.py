@@ -5,7 +5,6 @@
 import os
 import sys
 import argparse
-import fileinput
 
 HEADER_START_TAG 	= '>>>HEADER_START<<<'
 HEADER_END_TAG 		= '>>>HEADER_END<<<'
@@ -45,7 +44,7 @@ parser.add_argument('-t',	'--top',			type = str, 				default = '',		help = 'Sets
 parser.add_argument('-b',	'--bottom',			type = str,					default = '',		help = 'Sets the footer to be put at the bottom of the files.')
 parser.add_argument('-d',	'--directory',		type = str, 				default = './',		help = 'Sets the directory of files to have headers/footers added.')
 parser.add_argument('-f',	'--header_file',	type = str,					default = '',		help = 'Uses a file to specify header/footer, see --header-file-help.')
-parser.add_argument('-e',	'--extensions',		type = set[str],			default = {''},		help = 'A list of extensions for files to edit, by default edits all files.')
+parser.add_argument('-e',	'--extension',		type = str,					default = '',		help = 'The extension for files to edit, by default edits all files.')
 
 args = parser.parse_args()
 
@@ -53,12 +52,11 @@ if args.header_file_help:
 	print_header_file_help()
 	sys.exit()
 
-file_extensions		= args.extensions
+extension			= args.extension
 dir					= args.directory
 header_file			= args.header_file
 header				= args.top
 footer				= args.bottom
-dir_contents 		= {''}
 files 				= {''}
 paths 				= {''}
 has_header_footer 	= -1
@@ -73,13 +71,22 @@ else:
 		paths.add(file.name)
 		files.add(file.name)
 
-# Gets all files ending in any of the given extensions and adds them to files
-for extension in file_extensions:
-	for entry in dir_contents:
-		if entry[len(entry) - len(extension):] == extension:
-			files.add(entry)
+valid_files = {''}
+valid_paths = {''}
 
-dir_contents.remove('')
+# Gets all files ending in any of the given extensions and adds them to 
+# valid_files and valid_paths, which are later used to set the value
+# of files and paths
+for file in files:
+	if file[len(file) - len(extension):] == extension:
+		valid_files.add(file)
+for path in paths:
+	print(path[len(path) - len(extension):])
+	if path[len(path) - len(extension):] == extension:
+		valid_paths.add(path)
+
+files = valid_files
+paths = valid_paths
 paths.remove('')
 files.remove('')
 
@@ -133,6 +140,18 @@ if not args.whitespace:
 if header == '' and footer == '':
 	print(NO_HEADER_OR_FOOTER_MESSAGE)
 	sys.exit()
+else:
+	if header == '':
+		has_header_footer = HAS_FOOTER
+	if footer == '':
+		if has_header_footer == HAS_FOOTER:
+			has_header_footer = NO_HEADER_OR_FOOTER
+			print(NO_HEADER_OR_FOOTER_MESSAGE)
+			sys.exit()
+		else:
+			has_header_footer = HAS_HEADER
+	if has_header_footer == -1:
+		has_header_footer = HAS_HEADER_AND_FOOTER
 
 # display and check with the user that their header/footer is correct
 if has_header_footer == HAS_HEADER_AND_FOOTER:
