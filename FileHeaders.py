@@ -38,6 +38,7 @@ def print_header_file_help():
 		  ''')
 
 def apply_footers_and_headers(files, paths, disable_tags, detect_header):
+	print(paths)
 	for file_path in paths:
 		try: 
 			current_file = open(file_path, 'r+', encoding = 'utf-8', errors='ignore')
@@ -59,21 +60,19 @@ def apply_footers_and_headers(files, paths, disable_tags, detect_header):
 		if detect_header:
 			if content.find(tagged_header) == 0:
 				continue
-			elif content.find(tagged_footer) == len(content) - len(tagged_footer):
+			elif content.find(tagged_footer) == len(content) - len(tagged_footer) and content != '':
 				continue
 	
 		if header == '':
 			current_file.seek(0)
 			current_file.write(content + tagged_footer)
-			current_file.truncate()
 		elif footer == '':
 			current_file.seek(0)
 			current_file.write(tagged_header + content)
-			current_file.truncate()
 		else:
 			current_file.seek(0)
 			current_file.write(tagged_header + content + tagged_footer)
-			current_file.truncate()
+
 		current_file.close()
 
 parser = argparse.ArgumentParser(description = 'A small utility to add headers and footers to files.')
