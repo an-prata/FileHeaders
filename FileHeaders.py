@@ -38,10 +38,9 @@ def print_header_file_help():
 		  ''')
 
 def apply_footers_and_headers(files, paths, disable_tags, detect_header):
-	print(paths)
 	for file_path in paths:
 		try: 
-			current_file = open(file_path, 'r+', encoding = 'utf-8', errors='ignore')
+			current_file = open(file_path, 'r+', encoding = 'utf-8', errors = 'ignore')
 		except PermissionError: 
 			print(f'Insufficiant permission to edit {file_path}')
 			continue
