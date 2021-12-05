@@ -12,6 +12,7 @@ FOOTER_START_TAG 	= '>>>FOOTER_START<<<'
 FOOTER_END_TAG 		= '>>>FOOTER_END<<<'
 
 FILE_NAME_TAG		= '{FILE_NAME}'
+FOLDER_NAME_TAG		= '{FOLDER_NAME}'
 
 NO_HEADER_OR_FOOTER_MESSAGE = 'No header nor footer given form either command line arguments or file.'
 
@@ -33,6 +34,7 @@ def print_header_file_help():
 		  ''' + '''
 		  Tags:
 		  \t{FILE_NAME}: Inserts the name of the current file.
+		  \t{FOLDER_NAME}: Inserts the name of the current file's folder.
 		  ''')
 
 def apply_footers_and_headers(files, paths, disable_tags, detect_header):
@@ -49,6 +51,8 @@ def apply_footers_and_headers(files, paths, disable_tags, detect_header):
 		if disable_tags != True:
 			tagged_header = tagged_header.replace(FILE_NAME_TAG, files[paths.index(file_path)])
 			tagged_footer = tagged_footer.replace(FILE_NAME_TAG, files[paths.index(file_path)])
+			tagged_header = tagged_header.replace(FOLDER_NAME_TAG, os.path.basename(os.path.dirname(file_path)))
+			tagged_footer = tagged_footer.replace(FOLDER_NAME_TAG, os.path.basename(os.path.dirname(file_path)))
 
 		content = current_file.read().strip()
 
@@ -104,7 +108,7 @@ has_header_footer 	= -1
 if args.recursive:
 	for current_directory, directories, current_files in os.walk(dir):
 		for file in current_files:
-			paths.append(os.path.join(current_directory, file))
+			paths.append(os.path.join(dir, file))
 			files.append(file)
 else:
 	for file in os.scandir(dir):

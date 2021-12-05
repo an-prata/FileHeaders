@@ -35,4 +35,5 @@ things like file name, folder name, or parameters passed in when you run the scr
 
 Tags:
     {FILE_NAME}: Inserts the name of the current file.
+    {FOLDER_NAME}: Inserts the name of the current file's folder.
 ```
