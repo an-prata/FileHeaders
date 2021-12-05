@@ -35,7 +35,7 @@ def print_header_file_help():
 		  \t{FILE_NAME}: Inserts the name of the current file.
 		  ''')
 
-def apply_footers_and_headers(files, paths, disable_tags):
+def apply_footers_and_headers(files, paths, disable_tags, detect_header):
 	for file_path in paths:
 		try: 
 			current_file = open(file_path, 'r+', encoding = 'utf-8', errors='ignore')
@@ -50,7 +50,13 @@ def apply_footers_and_headers(files, paths, disable_tags):
 			tagged_header = tagged_header.replace(FILE_NAME_TAG, files[paths.index(file_path)])
 			tagged_footer = tagged_footer.replace(FILE_NAME_TAG, files[paths.index(file_path)])
 
-		content = current_file.read()
+		content = current_file.read().strip()
+
+		if detect_header:
+			if content.find(tagged_header) == 0:
+				continue
+			elif content.find(tagged_footer) == len(content) - len(tagged_footer):
+				continue
 	
 		if header == '':
 			current_file.seek(0)
@@ -73,6 +79,7 @@ parser.add_argument('--header_file_help',		action = 'store_true',							help = '
 parser.add_argument('-r',	'--recursive',		action = 'store_true',							help = 'Whether or not to scan for files recursively.')
 parser.add_argument('-w',	'--whitespace',		action = 'store_true', 							help = 'Whether or not to allow headers/footers only containing whitespace.')
 parser.add_argument(		'--disable_tags',	action = 'store_true',							help = 'Whether or not to use tags found in a header/footer file.')
+parser.add_argument('-o',	'--detect_header',	action = 'store_true',							help = 'Whether or not to scan for header/footers already in the file.')
 parser.add_argument('-t',	'--top',			type = str, 				default = '',		help = 'Sets the header to be put at the top of the files.')
 parser.add_argument('-b',	'--bottom',			type = str,					default = '',		help = 'Sets the footer to be put at the bottom of the files.')
 parser.add_argument('-d',	'--directory',		type = str, 				default = './',		help = 'Sets the directory of files to have headers/footers added.')
@@ -226,4 +233,4 @@ if paths.__contains__(os.path.join(dir, sys.argv[0])):
 if paths.__contains__(os.path.join(dir, header_file)):
 	paths.remove(os.path.join(dir, header_file)) # prevents this file from editing the header file
 
-apply_footers_and_headers(files, paths, args.disable_tags)
+apply_footers_and_headers(files, paths, args.disable_tags, args.detect_header)
