@@ -1,6 +1,6 @@
 # (c) Evan Overman (https://github.com/an-prata)
 # FileHeaders (https://github.com/an-prata/FileHeaders)
-# Licensed under 
+# Licensed under the MIT License
 
 import os
 import sys
