@@ -219,20 +219,20 @@ yn = input()
 if yn.lower() != 'y' and yn.isspace():
 	sys.exit()
 
-if files.__contains__(sys.argv[0]):
-	files.remove(sys.argv[0]) # prevents this file from editing itself
+if files.__contains__(os.path.basename(sys.argv[0])):
+	files.remove(os.path.basename(sys.argv[0])) # prevents this file from editing itself
 
 if files.__contains__(header_file):
 	files.remove(header_file) # prevents this file from editing the header file
 
-if paths.__contains__(sys.argv[0]):
-	paths.remove(sys.argv[0]) # prevents this file from editing itself
+if paths.__contains__(os.path.basename(sys.argv[0])):
+	paths.remove(os.path.basename(sys.argv[0])) # prevents this file from editing itself
 
 if paths.__contains__(header_file):
 	paths.remove(header_file) # prevents this file from editing the header file
 
-if paths.__contains__(os.path.join(dir, sys.argv[0])):
-	paths.remove(os.path.join(dir, sys.argv[0])) # prevents this file from editing itself
+if paths.__contains__(os.path.join(dir, os.path.basename(sys.argv[0]))):
+	paths.remove(os.path.join(dir, os.path.basename(sys.argv[0]))) # prevents this file from editing itself
 
 if paths.__contains__(os.path.join(dir, header_file)):
 	paths.remove(os.path.join(dir, header_file)) # prevents this file from editing the header file
