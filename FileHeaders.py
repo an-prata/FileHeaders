@@ -42,7 +42,7 @@ def apply_footers_and_headers(files, paths, disable_tags, detect_header):
 		try: 
 			current_file = open(file_path, 'r+', encoding = 'utf-8', errors = 'ignore')
 		except PermissionError: 
-			print(f'Insufficiant permission to edit {file_path}')
+			print(f'Skipped {file_path}: Insufficiant Permissions ...')
 			continue
 		
 		tagged_header = header
@@ -72,6 +72,7 @@ def apply_footers_and_headers(files, paths, disable_tags, detect_header):
 			current_file.seek(0)
 			current_file.write(tagged_header + content + tagged_footer)
 
+		print(f'Added Header/Footer to {file_path} ...')
 		current_file.close()
 
 parser = argparse.ArgumentParser(description = 'A small utility to add headers and footers to files.')
@@ -214,7 +215,8 @@ if header != '':
 if footer != '':
 	footer = '\n' + footer
 
-if input().lower() != 'y':
+yn = input()
+if yn.lower() != 'y' and yn.isspace():
 	sys.exit()
 
 if files.__contains__(sys.argv[0]):
