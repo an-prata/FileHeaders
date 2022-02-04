@@ -215,8 +215,6 @@ elif has_header_footer == HAS_FOOTER:
 	print('HEADER:\nNo header given.')
 	print(f'FOOTER\n{footer}')
 
-print('Is this correct? [Y/n]: ')
-
 if header != '':
 	header += '\n'
 if footer != '':
