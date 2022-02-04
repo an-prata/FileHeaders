@@ -107,7 +107,7 @@ has_header_footer 	= -1
 if args.recursive:
 	for current_directory, directories, current_files in os.walk(dir):
 		for file in current_files:
-			paths.append(os.path.join(dir, file))
+			paths.append(os.path.join(current_directory, file))
 			files.append(file)
 else:
 	for file in os.scandir(dir):
@@ -131,6 +131,13 @@ files = valid_files
 paths = valid_paths
 paths.remove('')
 files.remove('')
+
+for path in paths:
+	print(path)
+
+yn = input("\nFileHeaders.py will edit the above files, is this okay? [Y/n]: ")	
+if yn.lower() != 'y' and yn != '':
+	sys.exit()
 
 if header_file != '':
 	try:
@@ -215,8 +222,8 @@ if header != '':
 if footer != '':
 	footer = '\n' + footer
 
-yn = input()
-if yn.lower() != 'y' and yn.isspace():
+yn = input('Is this correct? [Y/n]: ')	
+if yn.lower() != 'y' and yn != '':
 	sys.exit()
 
 if files.__contains__(os.path.basename(sys.argv[0])):
