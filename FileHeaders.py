@@ -57,22 +57,47 @@ def apply_footers_and_headers(files, paths, disable_tags, detect_header):
 		content = current_file.read().strip()
 
 		if detect_header:
-			if content.find(tagged_header) == 0:
+			if content.find(tagged_header) == 0 and content.find(tagged_footer) == len(content) - len(tagged_footer) and content != '':
 				continue
-			elif content.find(tagged_footer) == len(content) - len(tagged_footer) and content != '':
-				continue
-	
-		if header == '':
-			current_file.seek(0)
-			current_file.write(content + tagged_footer)
-		elif footer == '':
-			current_file.seek(0)
-			current_file.write(tagged_header + content)
-		else:
-			current_file.seek(0)
-			current_file.write(tagged_header + content + tagged_footer)
+			elif content.find(tagged_footer) == len(content) - len(tagged_footer) and content != '' and tagged_header != '':
+				current_file.seek(0)
+				current_file.write(tagged_header + content)
+			elif content.find(tagged_header) == 0 and tagged_footer != '':
+				current_file.seek(0)
+				current_file.write(content + tagged_footer)
+			else:
+				current_file.seek(0)
+				current_file.write(tagged_header + content + tagged_footer)
 
 		print(f'Added Header/Footer to {file_path} ...')
+		current_file.close()
+
+def remove_footers_and_headers(files, paths, disable_tags):
+	for file_path in paths:
+		try: 
+			current_file = open(file_path, 'r+', encoding = 'utf-8', errors = 'ignore')
+		except PermissionError: 
+			print(f'Skipped {file_path}: Insufficiant Permissions ...')
+			continue
+		
+		tagged_header = header
+		tagged_footer = footer
+
+		if disable_tags != True:
+			tagged_header = tagged_header.replace(FILE_NAME_TAG, files[paths.index(file_path)])
+			tagged_footer = tagged_footer.replace(FILE_NAME_TAG, files[paths.index(file_path)])
+			tagged_header = tagged_header.replace(FOLDER_NAME_TAG, os.path.basename(os.path.dirname(file_path)))
+			tagged_footer = tagged_footer.replace(FOLDER_NAME_TAG, os.path.basename(os.path.dirname(file_path)))
+
+		content = current_file.read().strip()
+		content = content.removesuffix(tagged_footer)
+		content = content.removeprefix(tagged_header)
+
+		current_file.seek(0)
+		current_file.truncate(0)
+		current_file.write(content)
+
+		print(f'Removed Header/Footer from {file_path} ...')
 		current_file.close()
 
 parser = argparse.ArgumentParser(description = 'A small utility to add headers and footers to files.')
@@ -83,6 +108,7 @@ parser.add_argument('-r',	'--recursive',		action = 'store_true',							help = 'W
 parser.add_argument('-w',	'--whitespace',		action = 'store_true', 							help = 'Whether or not to allow headers/footers only containing whitespace.')
 parser.add_argument(		'--disable_tags',	action = 'store_true',							help = 'Whether or not to use tags found in a header/footer file.')
 parser.add_argument('-o',	'--detect_header',	action = 'store_true',							help = 'Whether or not to scan for header/footers already in the file.')
+parser.add_argument(		'--remove_header',	action = 'store_true',							help = 'Whether or not to remove existing header/footers from the file.')
 parser.add_argument('-t',	'--top',			type = str, 				default = '',		help = 'Sets the header to be put at the top of the files.')
 parser.add_argument('-b',	'--bottom',			type = str,					default = '',		help = 'Sets the footer to be put at the bottom of the files.')
 parser.add_argument('-d',	'--directory',		type = str, 				default = './',		help = 'Sets the directory of files to have headers/footers added.')
@@ -241,5 +267,9 @@ if paths.__contains__(os.path.join(dir, os.path.basename(sys.argv[0]))):
 
 if paths.__contains__(os.path.join(dir, header_file)):
 	paths.remove(os.path.join(dir, header_file)) # prevents this file from editing the header file
+
+if args.remove_header:
+	remove_footers_and_headers(files, paths, args.disable_tags)
+	exit()
 
 apply_footers_and_headers(files, paths, args.disable_tags, args.detect_header)
