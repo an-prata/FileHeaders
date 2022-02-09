@@ -10,6 +10,10 @@ HEADER_START_TAG 	= '>>>HEADER_START<<<'
 HEADER_END_TAG 		= '>>>HEADER_END<<<'
 FOOTER_START_TAG 	= '>>>FOOTER_START<<<'
 FOOTER_END_TAG 		= '>>>FOOTER_END<<<'
+BLACKLIST_START_TAG = '>>>BLACKLIST_START<<<'
+BLACKLIST_END_TAG	= '>>>BLACKLIST_END<<<'
+WHITELIST_START_TAG = '>>>WHITELIST_START<<<'
+WHITELIST_END_TAG	= '>>>WHITELIST_END<<<'
 
 FILE_NAME_TAG		= '{FILE_NAME}'
 FOLDER_NAME_TAG		= '{FOLDER_NAME}'
@@ -31,6 +35,18 @@ def print_header_file_help():
 
 		  You can make the headers change from file to file by adding tags, tags will insert
 		  things like file name, folder name, or parameters passed in when you run the script.
+
+		  You can also define a blacklist of paths to be excluded from any header/footer
+		  addition or removals using the "{BLACKLIST_START_TAG}" and "{BLACKLIST_END_TAG}" to
+		  start and end the list respectively.
+
+		  Similarly you can use the "{WHITELIST_START_TAG}" and "{WHITELIST_END_TAG}" to start
+		  and end a whitelist. Unless ignored by a flag, a whitelist makes it so that
+		  this script will only edit those files, if it's not on the list, it wont be edited.
+		  Because of the way this works you will need to use the path of the file that this
+		  script will use, for this reason you may want to first run the script in the 
+		  desired location and copying all the files you want to whitelist when the script
+		  lists them to confirm.
 		  ''' + '''
 		  Tags:
 		  \t{FILE_NAME}: Inserts the name of the current file.
@@ -102,18 +118,19 @@ def remove_footers_and_headers(files, paths, disable_tags):
 
 parser = argparse.ArgumentParser(description = 'A small utility to add headers and footers to files.')
 
-parser.add_argument('--header_file_help',		action = 'store_true',							help = 'Display help for creating files to set the header/footer.')
-
-parser.add_argument('-r',	'--recursive',		action = 'store_true',							help = 'Whether or not to scan for files recursively.')
-parser.add_argument('-w',	'--whitespace',		action = 'store_true', 							help = 'Whether or not to allow headers/footers only containing whitespace.')
-parser.add_argument(		'--disable_tags',	action = 'store_true',							help = 'Whether or not to use tags found in a header/footer file.')
-parser.add_argument('-o',	'--detect_header',	action = 'store_true',							help = 'Whether or not to scan for header/footers already in the file.')
-parser.add_argument(		'--remove_header',	action = 'store_true',							help = 'Whether or not to remove existing header/footers from the file.')
-parser.add_argument('-t',	'--top',			type = str, 				default = '',		help = 'Sets the header to be put at the top of the files.')
-parser.add_argument('-b',	'--bottom',			type = str,					default = '',		help = 'Sets the footer to be put at the bottom of the files.')
-parser.add_argument('-d',	'--directory',		type = str, 				default = './',		help = 'Sets the directory of files to have headers/footers added.')
-parser.add_argument('-f',	'--header_file',	type = str,					default = '',		help = 'Uses a file to specify header/footer, see --header-file-help.')
-parser.add_argument('-e',	'--extension',		type = str,					default = '',		help = 'The extension for files to edit, by default edits all files.')
+parser.add_argument('--header_file_help',			action = 'store_true',							help = 'Display help for creating files to set the header/footer.')
+parser.add_argument('-r',	'--recursive',			action = 'store_true',							help = 'Whether or not to scan for files recursively.')
+parser.add_argument('-w',	'--whitespace',			action = 'store_true', 							help = 'Whether or not to allow headers/footers only containing whitespace.')
+parser.add_argument(		'--disable_tags',		action = 'store_true',							help = 'Whether or not to use tags found in a header/footer file.')
+parser.add_argument('-o',	'--detect_header',		action = 'store_true',							help = 'Whether or not to scan for header/footers already in the file.')
+parser.add_argument(		'--remove_header',		action = 'store_true',							help = 'Whether or not to remove existing header/footers from the file.')
+parser.add_argument(		'--ignore_blacklist',	action = 'store_true',							help = 'Whether or not to ignore the blacklist found in the header/footer file.')
+parser.add_argument(		'--ignore_whitelist',	action = 'store_true',							help = 'Whether or not to ignore the whitelist found in the header/footer file.')
+parser.add_argument('-t',	'--top',				type = str, 				default = '',		help = 'Sets the header to be put at the top of the files.')
+parser.add_argument('-b',	'--bottom',				type = str,					default = '',		help = 'Sets the footer to be put at the bottom of the files.')
+parser.add_argument('-d',	'--directory',			type = str, 				default = './',		help = 'Sets the directory of files to have headers/footers added.')
+parser.add_argument('-f',	'--header_file',		type = str,					default = '',		help = 'Uses a file to specify header/footer, see --header-file-help.')
+parser.add_argument('-e',	'--extension',			type = str,					default = '',		help = 'The extension for files to edit, by default edits all files.')
 
 args = parser.parse_args()
 
@@ -158,42 +175,82 @@ paths = valid_paths
 paths.remove('')
 files.remove('')
 
+# Removes all files found in the blacklist.
+if not args.ignore_blacklist:
+	if header_file != '':
+		try:
+			current_file = open(header_file, 'r')
+		except FileNotFoundError:
+			print(f'file {header_file} not found.')
+			sys.exit()
+
+		content = current_file.read()
+
+		# if no header/footer block is present we set has_header_footer accordingly using constants,
+		try:
+			header = content[content.index(HEADER_START_TAG) + len(HEADER_START_TAG) + 1 : content.index(HEADER_END_TAG) - 1]
+		except ValueError:
+			has_header_footer = HAS_FOOTER
+		
+		try:
+			footer = content[content.index(FOOTER_START_TAG) + len(FOOTER_START_TAG) + 1: content.index(FOOTER_END_TAG) - 1]
+		except ValueError:
+			if has_header_footer == HAS_FOOTER:
+				has_header_footer = NO_HEADER_OR_FOOTER
+				print(NO_HEADER_OR_FOOTER_MESSAGE)
+				sys.exit()
+			else:
+				has_header_footer = HAS_HEADER
+
+		# has_header_footer will equal -1 if it has not been set by any of the statements above
+		# and if it has not been set in an except block then it must have both a header and footer
+		if has_header_footer == -1:
+			has_header_footer = HAS_HEADER_AND_FOOTER
+
+		if args.ignore_blacklist != True:
+			if content.__contains__(BLACKLIST_START_TAG) and content.__contains__(BLACKLIST_END_TAG):
+				blacklist = content[content.index(BLACKLIST_START_TAG) + len(BLACKLIST_START_TAG) + 1 : content.index(BLACKLIST_END_TAG) - 1]
+				blacklist_array = blacklist.splitlines()
+
+				for blacklisted in blacklist_array:
+					try:
+						paths.remove(blacklisted)
+					except ValueError:
+						print(f"File \"{blacklisted}\" was not found in the current directory.")
+
+		if args.ignore_whitelist != True:
+			if content.__contains__(WHITELIST_START_TAG) and content.__contains__(WHITELIST_END_TAG):
+				whitelist = content[content.index(WHITELIST_START_TAG) + len(WHITELIST_START_TAG) + 1 : content.index(WHITELIST_END_TAG) - 1]
+				whitelist_array = whitelist.splitlines()
+
+				for path in paths:
+					if whitelist_array.__contains__(path) != True:
+						paths.remove(path)
+
+if files.__contains__(os.path.basename(sys.argv[0])):
+	files.remove(os.path.basename(sys.argv[0])) # prevents this file from editing itself
+
+if files.__contains__(header_file):
+	files.remove(header_file) # prevents this file from editing the header file
+
+if paths.__contains__(os.path.basename(sys.argv[0])):
+	paths.remove(os.path.basename(sys.argv[0])) # prevents this file from editing itself
+
+if paths.__contains__(header_file):
+	paths.remove(header_file) # prevents this file from editing the header file
+
+if paths.__contains__(os.path.join(dir, os.path.basename(sys.argv[0]))):
+	paths.remove(os.path.join(dir, os.path.basename(sys.argv[0]))) # prevents this file from editing itself
+
+if paths.__contains__(os.path.join(dir, header_file)):
+	paths.remove(os.path.join(dir, header_file)) # prevents this file from editing the header file
+
 for path in paths:
 	print(path)
 
 yn = input("\nFileHeaders.py will edit the above files, is this okay? [Y/n]: ")	
 if yn.lower() != 'y' and yn != '':
 	sys.exit()
-
-if header_file != '':
-	try:
-		current_file = open(header_file, 'r')
-	except FileNotFoundError:
-		print(f'file {header_file} not found.')
-		sys.exit()
-
-	content = current_file.read()
-
-	# if no header/footer block is present we set has_header_footer accordingly using constants,
-	try:
-		header = content[content.index(HEADER_START_TAG) + len(HEADER_START_TAG) + 1 : content.index(HEADER_END_TAG) - 1]
-	except ValueError:
-		has_header_footer = HAS_FOOTER
-	
-	try:
-		footer = content[content.index(FOOTER_START_TAG) + len(FOOTER_START_TAG) + 1: content.index(FOOTER_END_TAG) - 1]
-	except ValueError:
-		if has_header_footer == HAS_FOOTER:
-			has_header_footer = NO_HEADER_OR_FOOTER
-			print(NO_HEADER_OR_FOOTER_MESSAGE)
-			sys.exit()
-		else:
-			has_header_footer = HAS_HEADER
-
-	# has_header_footer will equal -1 if it has not been set by any of the statements above
-	# and if it has not been set in an except block then it must have both a header and footer
-	if has_header_footer == -1:
-		has_header_footer = HAS_HEADER_AND_FOOTER
 
 # check if the user is allowing whitespace only headers/footer
 # and if not setting has_header_footer to not include the 
@@ -249,24 +306,6 @@ if footer != '':
 yn = input('Is this correct? [Y/n]: ')	
 if yn.lower() != 'y' and yn != '':
 	sys.exit()
-
-if files.__contains__(os.path.basename(sys.argv[0])):
-	files.remove(os.path.basename(sys.argv[0])) # prevents this file from editing itself
-
-if files.__contains__(header_file):
-	files.remove(header_file) # prevents this file from editing the header file
-
-if paths.__contains__(os.path.basename(sys.argv[0])):
-	paths.remove(os.path.basename(sys.argv[0])) # prevents this file from editing itself
-
-if paths.__contains__(header_file):
-	paths.remove(header_file) # prevents this file from editing the header file
-
-if paths.__contains__(os.path.join(dir, os.path.basename(sys.argv[0]))):
-	paths.remove(os.path.join(dir, os.path.basename(sys.argv[0]))) # prevents this file from editing itself
-
-if paths.__contains__(os.path.join(dir, header_file)):
-	paths.remove(os.path.join(dir, header_file)) # prevents this file from editing the header file
 
 if args.remove_header:
 	remove_footers_and_headers(files, paths, args.disable_tags)
